@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ai-chess.com</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>♟ ai-chess</h1>
+      <p class="subtitle">Play chess against an AI, or pass-and-play locally.</p>
+    </header>
+
+    <div class="layout">
+      <div class="board-column">
+        <div class="captured" id="captured-top"></div>
+        <div id="board" class="board"></div>
+        <div class="captured" id="captured-bottom"></div>
+        <div id="status" class="status">White to move.</div>
+      </div>
+
+      <div class="side-column">
+        <div class="panel">
+          <label class="field">
+            Mode
+            <select id="mode-select">
+              <option value="ai" selected>Play vs AI</option>
+              <option value="local">Pass &amp; Play (2 players)</option>
+            </select>
+          </label>
+          <label class="field" id="color-row">
+            Your color
+            <select id="color-select">
+              <option value="white" selected>White</option>
+              <option value="black">Black</option>
+            </select>
+          </label>
+          <label class="field" id="difficulty-row">
+            Difficulty
+            <select id="difficulty-select">
+              <option value="1">Easy</option>
+              <option value="2">Medium</option>
+              <option value="3" selected>Hard</option>
+              <option value="4">Very Hard</option>
+            </select>
+          </label>
+          <div class="buttons">
+            <button id="new-game">New Game</button>
+            <button id="undo" class="secondary">Undo</button>
+          </div>
+        </div>
+
+        <div class="panel history-panel">
+          <h2>Moves</h2>
+          <ul id="history"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="promo-dialog" class="promo-dialog hidden">
+    <div class="promo-box">
+      <p>Promote to:</p>
+      <div id="promo-buttons" class="promo-buttons"></div>
+    </div>
+  </div>
+
+  <script src="js/chess-engine.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
