@@ -104,6 +104,53 @@ const ChessAI = (() => {
     return best;
   }
 
+  // Centipawn-loss thresholds for judging a played move against the best move found
+  // at the same shallow search depth. This is a lightweight heuristic for commentary,
+  // not an authoritative analysis (a deeper search could disagree).
+  const JUDGMENT_THRESHOLDS = [
+    { max: 15, label: "best" },
+    { max: 50, label: "good" },
+    { max: 120, label: "inaccuracy" },
+    { max: 300, label: "mistake" },
+  ];
+
+  function classifyLoss(lossCentipawns) {
+    for (const t of JUDGMENT_THRESHOLDS) {
+      if (lossCentipawns <= t.max) return t.label;
+    }
+    return "blunder";
+  }
+
+  function analyzeMove(stateBefore, playedMove, depth) {
+    const moves = orderMoves(Chess.allLegalMoves(stateBefore, stateBefore.turn));
+    if (moves.length <= 1) {
+      return { bestScore: 0, playedScore: 0, lossCentipawns: 0, label: "forced" };
+    }
+
+    const colorSign = stateBefore.turn === Chess.WHITE ? 1 : -1;
+    let bestScore = -Infinity;
+    let playedScore = -Infinity;
+    let alpha = -Infinity;
+    const beta = Infinity;
+
+    for (const move of moves) {
+      const next = Chess.applyMove(stateBefore, move);
+      const score = -negamax(next, depth - 1, -beta, -alpha, -colorSign);
+      if (score > bestScore) bestScore = score;
+      if (score > alpha) alpha = score;
+      const isPlayed =
+        move.from.row === playedMove.from.row &&
+        move.from.col === playedMove.from.col &&
+        move.to.row === playedMove.to.row &&
+        move.to.col === playedMove.to.col &&
+        move.promotion === playedMove.promotion;
+      if (isPlayed) playedScore = score;
+    }
+
+    const lossCentipawns = Math.max(0, bestScore - playedScore);
+    return { bestScore, playedScore, lossCentipawns, label: classifyLoss(lossCentipawns) };
+  }
+
   function chooseMove(state, depth) {
     const moves = orderMoves(Chess.allLegalMoves(state, state.turn));
     if (moves.length === 0) return null;
@@ -126,5 +173,5 @@ const ChessAI = (() => {
     return bestMove;
   }
 
-  return { chooseMove, evaluate };
+  return { chooseMove, evaluate, analyzeMove };
 })();

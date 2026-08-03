@@ -236,6 +236,52 @@ button.secondary {
 }
 #history .num { color: var(--muted); width: 28px; display: inline-block; }
 
+.badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.badge-best { background: rgba(52, 211, 153, 0.18); color: #34d399; }
+.badge-good { background: rgba(125, 211, 252, 0.18); color: #7dd3fc; }
+.badge-inaccuracy { background: rgba(250, 204, 21, 0.18); color: #facc15; }
+.badge-mistake { background: rgba(251, 146, 60, 0.18); color: #fb923c; }
+.badge-blunder { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+.badge-forced { background: rgba(139, 144, 168, 0.18); color: var(--muted); }
+
+.commentary-panel h2 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+#commentary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+#commentary li {
+  background: #0f1220;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  line-height: 1.4;
+}
+#commentary:empty::before {
+  content: "Make a move and I'll comment on it here.";
+  color: var(--muted);
+  font-style: italic;
+}
+
 .promo-dialog {
   position: fixed;
   inset: 0;

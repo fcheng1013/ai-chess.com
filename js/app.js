@@ -24,9 +24,36 @@ let blackTime = timeControlSeconds;
 let clockTimerId = null;
 let lastTick = 0;
 
+const JUDGE_DEPTH = 2; // shallow, fast search used only for move commentary — not authoritative
+let judgments = []; // parallel to game.history; null for AI-played moves
+
+const LABEL_TEXT = {
+  best: "Best",
+  good: "Good",
+  inaccuracy: "Inaccuracy",
+  mistake: "Mistake",
+  blunder: "Blunder",
+  forced: "Forced",
+};
+
+const COMMENTARY_PHRASES = {
+  best: ["that's the top choice in this position.", "precise — the engine agrees with that one.", "you found the best move here."],
+  good: ["solid move.", "reasonable and sound.", "that keeps things on track."],
+  inaccuracy: ["a little loose — there was something more precise.", "playable, but not the sharpest option.", "slight slip, nothing serious yet."],
+  mistake: ["that gives some advantage back.", "careful — that move costs you something.", "the position just got harder."],
+  blunder: ["ouch — that drops significant material.", "that's a costly mistake.", "big blunder — the opponent will be happy to see that."],
+  forced: ["only one legal move there."],
+};
+
+function randomPhrase(label) {
+  const pool = COMMENTARY_PHRASES[label] ?? [""];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 const boardEl = document.getElementById("board");
 const statusEl = document.getElementById("status");
 const historyEl = document.getElementById("history");
+const commentaryEl = document.getElementById("commentary");
 const capturedTopEl = document.getElementById("captured-top");
 const capturedBottomEl = document.getElementById("captured-bottom");
 const clockTopEl = document.getElementById("clock-top");
@@ -189,6 +216,12 @@ function renderCaptured() {
   capturedBottomEl.textContent = fmt(bottomColor === Chess.WHITE ? Chess.BLACK : Chess.WHITE);
 }
 
+function judgmentBadge(index) {
+  const j = judgments[index];
+  if (!j) return "";
+  return ` <span class="badge badge-${j.label}">${LABEL_TEXT[j.label]}</span>`;
+}
+
 function renderHistory() {
   historyEl.innerHTML = "";
   const moves = game.history;
@@ -197,10 +230,17 @@ function renderHistory() {
     const num = i / 2 + 1;
     const white = moves[i]?.san ?? "";
     const black = moves[i + 1]?.san ?? "";
-    li.innerHTML = `<span class="num">${num}.</span> <span>${white}</span> <span>${black}</span>`;
+    li.innerHTML = `<span class="num">${num}.</span> <span>${white}${judgmentBadge(i)}</span> <span>${black}${judgmentBadge(i + 1)}</span>`;
     historyEl.appendChild(li);
   }
   historyEl.scrollTop = historyEl.scrollHeight;
+}
+
+function pushCommentary(text) {
+  const li = document.createElement("li");
+  li.textContent = text;
+  commentaryEl.appendChild(li);
+  commentaryEl.scrollTop = commentaryEl.scrollHeight;
 }
 
 function renderStatus() {
@@ -295,10 +335,19 @@ function showPromotionDialog() {
 }
 
 function commitMove(move) {
+  const preMoveState = game;
+  const moverColor = game.turn;
   game = Chess.applyMove(game, move);
   lastMove = { from: move.from, to: move.to };
   selected = null;
   legalTargets = [];
+
+  const analysis = ChessAI.analyzeMove(preMoveState, move, JUDGE_DEPTH);
+  judgments[game.history.length - 1] = analysis;
+  const moverName = moverColor === Chess.WHITE ? "White" : "Black";
+  const san = game.history[game.history.length - 1].san;
+  pushCommentary(`${moverName} played ${san} — ${LABEL_TEXT[analysis.label]}: ${randomPhrase(analysis.label)}`);
+
   render();
 
   const status = Chess.getStatus(game);
@@ -315,16 +364,30 @@ function commitMove(move) {
   }
 }
 
+// Baseline "thinking" time per difficulty, in ms — stronger settings pause longer,
+// mimicking a deeper think rather than moving instantly. Actual search time counts
+// toward this, so the artificial delay only fills in whatever time is left over.
+const AI_THINK_MS = { 1: 400, 2: 900, 3: 1600, 4: 2400 };
+
 function runAiMove() {
+  const start = performance.now();
   const move = ChessAI.chooseMove(game, aiDepth);
-  aiThinking = false;
-  if (!move) {
+  const computeMs = performance.now() - start;
+
+  const targetMs = (AI_THINK_MS[aiDepth] ?? 1200) + Math.random() * 400;
+  const remainingDelay = Math.max(0, targetMs - computeMs);
+
+  setTimeout(() => {
+    aiThinking = false;
+    if (!move) {
+      render();
+      return;
+    }
+    game = Chess.applyMove(game, move);
+    judgments[game.history.length - 1] = null;
+    lastMove = { from: move.from, to: move.to };
     render();
-    return;
-  }
-  game = Chess.applyMove(game, move);
-  lastMove = { from: move.from, to: move.to };
-  render();
+  }, remainingDelay);
 }
 
 function startNewGame() {
@@ -338,6 +401,8 @@ function startNewGame() {
   timeoutWinner = null;
   aiThinking = false;
   promoDialog.classList.add("hidden");
+  judgments = [];
+  commentaryEl.innerHTML = "";
 
   timeControlSeconds = parseInt(timeSelect.value, 10);
   whiteTime = timeControlSeconds || 0;
@@ -367,6 +432,9 @@ function undo() {
   legalTargets = [];
   lastMove = game.history.length ? game.history[game.history.length - 1].move : null;
   if (lastMove) lastMove = { from: lastMove.from, to: lastMove.to };
+  // Judgments/commentary aren't worth replaying — just trim to the moves that remain.
+  judgments.length = game.history.length;
+  commentaryEl.innerHTML = "";
   startClock();
   render();
 }
