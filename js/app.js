@@ -1,6 +1,8 @@
+// Neon glow theme: the cyan side uses Unicode's solid glyph set (filled), the pink side
+// uses the hollow outline set — this is a font-level property of the codepoints, not CSS.
 const PIECE_GLYPHS = {
-  w: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
-  b: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
+  w: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
+  b: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
 };
 
 let game = Chess.newGame();
@@ -74,7 +76,7 @@ function render() {
       const piece = game.board[r][c];
       if (piece) {
         const glyph = document.createElement("span");
-        glyph.className = "piece";
+        glyph.className = `piece ${piece.color === Chess.WHITE ? "piece-white" : "piece-black"}`;
         glyph.textContent = PIECE_GLYPHS[piece.color][piece.type];
         square.appendChild(glyph);
       }

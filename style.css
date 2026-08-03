@@ -84,10 +84,26 @@ h1 { margin: 0 0 4px; font-size: 1.7rem; }
 
 .piece {
   position: relative;
-  font-size: min(7.5vw, 42px);
+  font-size: min(12.5vw, 70px);
   line-height: 1;
   z-index: 1;
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+}
+
+.piece-white {
+  color: #22d3ee;
+  -webkit-text-stroke: 0.6px rgba(8, 20, 30, 0.55);
+  text-shadow:
+    0 0 6px rgba(34, 211, 238, 0.85),
+    0 0 12px rgba(34, 211, 238, 0.45),
+    0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.piece-black {
+  color: #f472b6;
+  text-shadow:
+    0 0 6px rgba(244, 114, 182, 0.85),
+    0 0 12px rgba(244, 114, 182, 0.45),
+    0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .move-hint {
