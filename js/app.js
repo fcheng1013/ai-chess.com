@@ -15,17 +15,28 @@ let lastMove = null; // {from, to}
 let pendingPromotion = null; // {from, to, color}
 let gameOver = false;
 let aiThinking = false;
+let gameOverReason = null; // null | "timeout"
+let timeoutWinner = null;
+
+let timeControlSeconds = 600;
+let whiteTime = timeControlSeconds;
+let blackTime = timeControlSeconds;
+let clockTimerId = null;
+let lastTick = 0;
 
 const boardEl = document.getElementById("board");
 const statusEl = document.getElementById("status");
 const historyEl = document.getElementById("history");
 const capturedTopEl = document.getElementById("captured-top");
 const capturedBottomEl = document.getElementById("captured-bottom");
+const clockTopEl = document.getElementById("clock-top");
+const clockBottomEl = document.getElementById("clock-bottom");
 const promoDialog = document.getElementById("promo-dialog");
 const promoButtons = document.getElementById("promo-buttons");
 const modeSelect = document.getElementById("mode-select");
 const colorSelect = document.getElementById("color-select");
 const difficultySelect = document.getElementById("difficulty-select");
+const timeSelect = document.getElementById("time-select");
 const colorRow = document.getElementById("color-row");
 const difficultyRow = document.getElementById("difficulty-row");
 const newGameBtn = document.getElementById("new-game");
@@ -94,7 +105,70 @@ function render() {
 
   renderCaptured();
   renderHistory();
+  renderClocks();
   renderStatus();
+}
+
+function formatTime(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${String(r).padStart(2, "0")}`;
+}
+
+function renderClocks() {
+  const hasClock = timeControlSeconds > 0;
+  clockTopEl.classList.toggle("hidden", !hasClock);
+  clockBottomEl.classList.toggle("hidden", !hasClock);
+  if (!hasClock) return;
+
+  const bottomColor = orientation();
+  const topColor = Chess.otherColor(bottomColor);
+  const timeFor = (color) => (color === Chess.WHITE ? whiteTime : blackTime);
+
+  clockTopEl.textContent = formatTime(timeFor(topColor));
+  clockBottomEl.textContent = formatTime(timeFor(bottomColor));
+
+  clockTopEl.classList.toggle("active", !gameOver && game.turn === topColor);
+  clockBottomEl.classList.toggle("active", !gameOver && game.turn === bottomColor);
+  clockTopEl.classList.toggle("low", timeFor(topColor) <= 30);
+  clockBottomEl.classList.toggle("low", timeFor(bottomColor) <= 30);
+}
+
+function startClock() {
+  stopClock();
+  if (!timeControlSeconds) return;
+  lastTick = Date.now();
+  clockTimerId = setInterval(tickClock, 200);
+}
+
+function stopClock() {
+  if (clockTimerId) {
+    clearInterval(clockTimerId);
+    clockTimerId = null;
+  }
+}
+
+function tickClock() {
+  const now = Date.now();
+  const elapsed = (now - lastTick) / 1000;
+  lastTick = now;
+
+  if (gameOver || pendingPromotion) return;
+
+  if (game.turn === Chess.WHITE) whiteTime = Math.max(0, whiteTime - elapsed);
+  else blackTime = Math.max(0, blackTime - elapsed);
+
+  if (whiteTime <= 0 || blackTime <= 0) {
+    gameOver = true;
+    gameOverReason = "timeout";
+    timeoutWinner = whiteTime <= 0 ? Chess.BLACK : Chess.WHITE;
+    stopClock();
+    render();
+    return;
+  }
+
+  renderClocks();
 }
 
 function renderCaptured() {
@@ -135,6 +209,13 @@ function renderStatus() {
     statusEl.className = "status thinking";
     return;
   }
+  if (gameOverReason === "timeout") {
+    const winnerName = timeoutWinner === Chess.WHITE ? "White" : "Black";
+    const loserName = timeoutWinner === Chess.WHITE ? "Black" : "White";
+    statusEl.textContent = `${loserName} ran out of time — ${winnerName} wins!`;
+    statusEl.className = "status over";
+    return;
+  }
   const status = Chess.getStatus(game);
   const turnName = game.turn === Chess.WHITE ? "White" : "Black";
   if (status.status === "checkmate") {
@@ -142,10 +223,12 @@ function renderStatus() {
     statusEl.textContent = `Checkmate — ${winner} wins!`;
     statusEl.className = "status over";
     gameOver = true;
+    stopClock();
   } else if (status.status === "stalemate") {
     statusEl.textContent = "Stalemate — draw.";
     statusEl.className = "status over";
     gameOver = true;
+    stopClock();
   } else if (status.status === "check") {
     statusEl.textContent = `${turnName} is in check.`;
     statusEl.className = "status check";
@@ -251,8 +334,16 @@ function startNewGame() {
   lastMove = null;
   pendingPromotion = null;
   gameOver = false;
+  gameOverReason = null;
+  timeoutWinner = null;
   aiThinking = false;
   promoDialog.classList.add("hidden");
+
+  timeControlSeconds = parseInt(timeSelect.value, 10);
+  whiteTime = timeControlSeconds || 0;
+  blackTime = timeControlSeconds || 0;
+  startClock();
+
   render();
 
   if (mode === "ai" && humanColor === Chess.BLACK) {
@@ -270,10 +361,13 @@ function undo() {
     game = replayWithoutLastMove(game);
   }
   gameOver = false;
+  gameOverReason = null;
+  timeoutWinner = null;
   selected = null;
   legalTargets = [];
   lastMove = game.history.length ? game.history[game.history.length - 1].move : null;
   if (lastMove) lastMove = { from: lastMove.from, to: lastMove.to };
+  startClock();
   render();
 }
 
@@ -306,6 +400,8 @@ colorSelect.addEventListener("change", () => {
 difficultySelect.addEventListener("change", () => {
   aiDepth = parseInt(difficultySelect.value, 10);
 });
+
+timeSelect.addEventListener("change", startNewGame);
 
 newGameBtn.addEventListener("click", startNewGame);
 undoBtn.addEventListener("click", undo);

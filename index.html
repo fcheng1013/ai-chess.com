@@ -15,9 +15,15 @@
 
     <div class="layout">
       <div class="board-column">
-        <div class="captured" id="captured-top"></div>
+        <div class="player-row">
+          <div class="captured" id="captured-top"></div>
+          <div class="clock" id="clock-top">10:00</div>
+        </div>
         <div id="board" class="board"></div>
-        <div class="captured" id="captured-bottom"></div>
+        <div class="player-row">
+          <div class="captured" id="captured-bottom"></div>
+          <div class="clock" id="clock-bottom">10:00</div>
+        </div>
         <div id="status" class="status">White to move.</div>
       </div>
 
@@ -44,6 +50,17 @@
               <option value="2">Medium</option>
               <option value="3" selected>Hard</option>
               <option value="4">Very Hard</option>
+            </select>
+          </label>
+          <label class="field">
+            Time control
+            <select id="time-select">
+              <option value="60">Bullet · 1 min</option>
+              <option value="180">Blitz · 3 min</option>
+              <option value="300">Blitz · 5 min</option>
+              <option value="600" selected>Rapid · 10 min</option>
+              <option value="900">Rapid · 15 min</option>
+              <option value="0">No clock</option>
             </select>
           </label>
           <div class="buttons">

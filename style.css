@@ -122,13 +122,37 @@ h1 { margin: 0 0 4px; font-size: 1.7rem; }
   z-index: 1;
 }
 
+.player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .captured {
+  flex: 1;
   min-height: 28px;
   font-size: 1.2rem;
   color: var(--muted);
   padding: 4px 2px;
   letter-spacing: 2px;
 }
+
+.clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  min-width: 84px;
+  text-align: center;
+}
+.clock.active { border-color: var(--accent); color: var(--accent); }
+.clock.low { color: #f87171; border-color: #f87171; }
+.clock.hidden { display: none; }
 
 .status {
   margin-top: 10px;
